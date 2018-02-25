@@ -1,0 +1,10 @@
+{
+  "description": "shows and observes the isolated scope of the selected DOM element",
+  "manifest_version": 2,
+  "name": "isolateScope",
+  "permissions": [
+    "storage"
+  ],
+  "version": "0.1",
+  "devtools_page": "loader.html"
+}
