@@ -6,7 +6,7 @@ var getScope_caller = "(" + getScopes.toString() + ")()";
 var TIME_HOW_OFTEN_WRITE_SESSION_STORAGE = 1000;
 
 elements.createSidebarPane(
-    'isolatedScope',
+    'jAngular',
     postCreate
 );
 
@@ -48,7 +48,7 @@ function getScopes() {
 
     var parents = [];
     if (tree.length > 1) {
-        parents = tree.slice(1, tree.length).map((cur) => cur.nodeName);
+        parents = tree.slice(1, tree.length).map(function(cur) {return cur.nodeName;});
     }
 
     var isolatedScope = angular.element(tree[0]).isolateScope();

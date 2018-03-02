@@ -4,10 +4,9 @@
         controller: controller, controllerAs: 'vm',
         templateUrl: 'subelements.html',
         bindings: {
-            motherObj: '<',
+            rootObj: '<',
             chainKey: '@',
             opened: '<',
-            level: '<',
             root: '<',
             nodeName: '<',
             forceOnChange: '<'
@@ -49,17 +48,34 @@
             }
         }
 
-        function $onChanges(changesObj) {
+        function $onChanges() {
 
-            var type = !vm.motherObj ? 'undefined' : vm.getType(vm.motherObj.value);
+            var type = !vm.rootObj ? 'undefined' : vm.getType(vm.rootObj.value);
 
-            if (!vm.motherObj || !vm.motherObj.value || (type !== 'object' && type !== 'array')) {
+            checkForChangedNodeName();
+
+            //is either object or array
+            if (!vm.rootObj || !vm.rootObj.value || (type !== 'object' && type !== 'array')) {
                 vm.showThis = [];
                 return;
+            } else {
+                vm.showThis = vm.showThis || [];
+                if (type === 'object'){
+                    handleObject();
+                } else {//array
+                    handleArray();
+                }
             }
 
-            if (type === 'object'){
+            //sort the whole thing
+            vm.showThis = vm.showThis.sort(function(a, b) {
+                return (a.$key > b.$key) ? 1 : -1;
+            });
 
+            //force reload
+            vm.forceOnChange = !vm.forceOnChange;
+
+            function checkForChangedNodeName() {
                 if (vm.root) {
                     var lastNodeName = vm.nodeName;
                     if (lastNodeName !== vm.nodeNameFromLastCheck) {
@@ -67,10 +83,14 @@
                     }
                     vm.nodeNameFromLastCheck = vm.nodeName;
                 }
+            }
 
-                vm.showThis = vm.showThis || [];
+            function handleObject() {
 
-                angular.forEach(vm.motherObj.value, function(val, key) {
+                //iterate children properties, update values, and highlight rootObject/children
+                angular.forEach(vm.rootObj.value, checkForChanges);
+
+                function checkForChanges(val, key) {
 
                     var newValues = {
                         $key: key,
@@ -79,67 +99,98 @@
                         value: val
                     };
 
-                    var existingElement = vm.showThis && vm.showThis.find(function(curCurrent) {return curCurrent.$key === key;});
+                    var existingElement = vm.showThis.find(function(curCurrent) {return curCurrent.$key === key;});
                     if (!existingElement) {
                         vm.showThis.push(newValues);
-                    } else {
-                        var valueIsDifferent = (existingElement.$type !== 'object' && existingElement.$type !== 'array' && existingElement.value !== newValues.value);
-                        var timeoutIsRunningAlready = !!existingElement.$lastValue;
-
-                        var oldValue = existingElement.value;
-                        Object.assign(existingElement, newValues);
-                        if (valueIsDifferent && !timeoutIsRunningAlready) {
-                            existingElement.$lastValue = oldValue;
-                            $timeout(function(){
-                                existingElement.$lastValue = undefined;
-                            }, TIME_BEFORE_FADING_OUT);
-                        }
-                        var timeoutIsRunningAlready_parent = !!vm.motherObj.$highlightedParent;
-                        if (!vm.root && valueIsDifferent && !timeoutIsRunningAlready_parent) {
-                            vm.motherObj.$highlightedParent = true;
-                            $timeout(function(){
-                                vm.motherObj.$highlightedParent = undefined;
-                            }, TIME_BEFORE_FADING_OUT);
-
-                        }
+                        return;
                     }
-                });
-            } else {//array
-                var wasFilledAndArray = (vm.showThis && vm.getType(vm.showThis) === 'array');
-                if (wasFilledAndArray) {
-                    var timeoutIsRunningAlready_parent = !!vm.motherObj.$oldLength;
-                    if (!timeoutIsRunningAlready_parent && vm.showThis.length !== vm.motherObj.value.length) {
-                        vm.motherObj.$oldLength = vm.showThis.length;
+
+                    var valueIsDifferent = (existingElement.$type !== 'object' && existingElement.$type !== 'array' && key !== '$$hashKey' && existingElement.value !== newValues.value);
+                    var timeoutIsRunningAlready = !!existingElement.$lastValue;
+
+                    //highlight value
+                    var oldValue = existingElement.value;
+                    Object.assign(existingElement, newValues);
+                    if (valueIsDifferent && !timeoutIsRunningAlready) {
+                        existingElement.$lastValue = oldValue;
                         $timeout(function(){
-                            vm.motherObj.$oldLength = undefined;
+                            existingElement.$lastValue = undefined;
+                        }, TIME_BEFORE_FADING_OUT);
+                    }
+
+                    //highlight rootObj
+                    if (!vm.root && valueIsDifferent && !vm.rootObj.$highlightMe) {
+                        vm.rootObj.$highlightMe = true;
+                        $timeout(function(){
+                            vm.rootObj.$highlightMe = undefined;
                         }, TIME_BEFORE_FADING_OUT);
                     }
                 }
-
-                vm.showThis = vm.motherObj.value.map(function(cur, index) {
-                    var $lastValue;
-                    if (wasFilledAndArray) {
-                        if (vm.showThis.length > index) {
-                            if (vm.showThis[index].value !== cur) {
-                                //todo
-                            }
-                        }
-                    }
-                    return {
-                        $lastValue: $lastValue,
-                        $key: index,
-                        $type: vm.getType(cur),
-                        $children: vm.children(cur),
-                        value: cur
-                    }
-                });
             }
 
-            vm.showThis = vm.showThis.sort(function(a, b) {
-                return (a.$key > b.$key) ? 1 : -1;
-            });
+            function handleArray() {
 
-            vm.forceOnChange = !vm.forceOnChange;
+                var oldMaxLength = checkForChangedLengthAndAdjustArray();
+                //look for changed values
+                var index = 0;
+                for (var cur of vm.showThis) {
+                    checkForChanges(cur, index, oldMaxLength);
+                    index ++;
+                }
+
+                function checkForChangedLengthAndAdjustArray() {
+                    var oldLength = vm.showThis.length;
+                    var rootLength = vm.rootObj.value.length;
+                    if (oldLength !== rootLength) {
+
+                        //differnt size -> HIGHLIGHT
+                        if (vm.rootObj.$oldLength) {
+                            vm.rootObj.$oldLength = oldLength;
+                            $timeout(function(){
+                                vm.rootObj.$oldLength = undefined;
+                            }, TIME_BEFORE_FADING_OUT);
+                        }
+
+                        //adjust array size
+                        if (oldLength > rootLength) {
+                            vm.showThis = vm.showThis.slice(0, rootLength);
+                        } else  {
+                            var toAdd = (rootLength - oldLength);
+                            vm.showThis = vm.showThis.concat(([...Array(toAdd)]).map(function(){return {};}));
+                        }
+                    }
+                    return oldLength;
+                }
+
+                function checkForChanges(cur, index, oldLength) {
+                    cur.$key = index;
+
+                    var newValue = vm.rootObj.value[index];
+
+                    Object.assign(cur, {
+                        $type: getType(newValue),
+                        $children: vm.children(newValue),
+                        value: newValue
+                    });
+
+                    if (index >= oldLength && !cur.$highlightMe) {
+                        cur.$highlightMe = true;
+                        //reset highlighted elements
+                        $timeout(function(){
+                            cur.$highlightMe = undefined;
+                        }, TIME_BEFORE_FADING_OUT);
+
+                        //highlight rootObj
+                        if (!vm.rootObj.$oldLength) {
+                            vm.rootObj.$oldLength = oldLength;
+                            $timeout(function(){
+                                vm.rootObj.$oldLength = undefined;
+                            }, TIME_BEFORE_FADING_OUT);
+                        }
+                    }
+                }
+
+            }
 
         }
     }
