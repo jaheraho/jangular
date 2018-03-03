@@ -1,0 +1,33 @@
+<div
+        ng-show="vm.dom"
+>
+    <br
+            ng-repeat-start="parent in vm.parents"
+            ng-show="$index !== 0 && (parent.hasIsolatedScope || vm.parents[$index-1].hasIsolatedScope)"
+    />
+    <span
+            ng-repeat-end
+            ng-class="{'bold': parent.thisElementWillBeShown}"
+            style="margin-left: {{vm.lineBreaksBeforeThisIndex($index) * 15}}px;"
+    ><{{(parent.nodeName + '').toLowerCase()}}></span>
+</div>
+<div
+        ng-show="!vm.dom"
+        style="color: grey;"
+>[no angular.element($0).isolateScope() or parent elements]</div>
+<hr
+        ng-show="vm.dom"
+/>
+<div
+        style="margin-left: {{vm.getMarginStepsOfShowScope() * 15}}px;"
+>
+<subelements
+        ng-if="vm.dom"
+        root-obj="vm.dom"
+        chain-key="root"
+        opened="vm.opened"
+
+        root="true"
+        node-name="vm.nodeName"
+></subelements>
+</div>

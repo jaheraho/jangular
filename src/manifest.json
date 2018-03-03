@@ -1,0 +1,10 @@
+{
+  "description": "AngularJS: see isolated scopes and changes of their properties",
+  "manifest_version": 2,
+  "name": "jAngular",
+  "permissions": [
+    "storage"
+  ],
+  "version": "0.1",
+  "devtools_page": "loader.html"
+}

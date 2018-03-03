@@ -1,0 +1,47 @@
+<div
+        ng-repeat="cur in vm.showThis track by $index"
+>
+    <div
+            ng-click="(cur.$type === 'object' || cur.$type === 'array') && cur.$children && vm.toggle(cur.$key)"
+            title="{{cur.$key}}"
+    ><!--
+    for object: + or -
+    --><span
+            ng-if="(cur.$type === 'object' || cur.$type === 'array') && cur.$children"
+    >
+        <span>{{(vm.opened[vm.chainKey + '_' + cur.$key] || (vm.root && (cur.$key === 'vm' || cur.$key === '$ctrl'))) ? '- ' : '+ ' }}</span>
+    </span><!--
+        the key
+        --><span
+            ng-class="{'highlight': cur.$highlightMe}"
+    >{{cur.$key | limitTo: 30}}</span><!--
+        if object or array: amount of children
+        --><span
+            ng-show="cur.$type === 'array'"
+            ng-class="{'highlight': cur.$highlightMe || cur.$oldLength}"
+    >[{{cur.$children}}]</span><!--
+    --><span ng-show="cur.$oldLength" style="background-color: orangered;">[{{cur.$oldLength}}]</span><!--
+    --><span ng-show="cur.$type === 'object'"
+    >{{'{' + cur.$children + '}'}}</span><!--
+         if no object: show content of key
+        --><span
+            ng-if="(cur.$type !== 'object' && cur.$type !== 'array')"
+    >: <span
+            ng-class="{'highlight': cur.$highlightMe || vm.getType(cur.$lastValue) !== 'undefined'}"
+    >{{cur.value}}</span></span><!--
+        --><span ng-show="vm.getType(cur.$lastValue) !== 'undefined'"> <span style="background-color: orangered;">{{cur.$lastValue}}</span></span><!--
+        --><span style="color:grey;"> {{cur.$type}}</span>
+    </div>
+    <div
+            ng-if="(cur.$type === 'object' || cur.$type === 'array')"
+            ng-show="vm.opened[vm.chainKey + '_' + cur.$key] || (vm.root && (cur.$key === 'vm' || cur.$key === '$ctrl'))"
+            style="padding-left: 20px;"
+    >
+        <subelements
+                root-obj="cur"
+                chain-key="{{vm.chainKey + '_' + cur.$key}}"
+                opened="vm.opened"
+                force-on-change="vm.forceOnChange"
+        ></subelements>
+    </div>
+</div>
